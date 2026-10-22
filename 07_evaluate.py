@@ -84,6 +84,8 @@ def main():
 def summarise(res):
     return dict(success=np.mean([r["success"] for r in res]),
                 collision=np.mean([r["collision"] for r in res]),
+                collision_robot_fault=np.mean([r["collision_robot_fault"] for r in res]),
+                collision_ped_fault=np.mean([r["collision_ped_fault"] for r in res]),
                 reached=np.mean([r["reached"] for r in res]),
                 time=np.nanmean([r["time"] for r in res]) if any(r["reached"] for r in res) else np.nan,
                 min_dist=np.mean([r["min_dist"] for r in res]),
@@ -91,27 +93,43 @@ def summarise(res):
                 frozen=np.mean([r["frozen"] for r in res]))
 
 
-def write(rows, tag):
+def write(rows, tag, note=""):
     name = "results/nav_metrics" + (f"_{tag}" if tag else "")
-    keys = ["success", "collision", "reached", "time", "min_dist", "path_len", "frozen"]
+    keys = ["success", "collision", "collision_robot_fault", "collision_ped_fault", "reached", "time",
+            "min_dist", "path_len", "frozen"]
     with open(name + ".csv", "w") as f:
         f.write("scene,method," + ",".join(keys) + "\n")
         for r in rows:
             f.write(f"{r['scene']},{r['method']}," + ",".join(f"{r[k]:.4f}" for k in keys) + "\n")
     with open(name + ".md", "w") as f:
-        f.write("| scene | method | success | collisions | time to goal (s) | closest gap (m) | "
-                "standing still (s) |\n|---|---|---|---|---|---|---|\n")
+        if note:
+            f.write(note + "\n\n")
+        f.write("| scene | method | success | collisions | robot at fault | person walked into robot | "
+                "time to goal (s) | closest gap (m) | standing still (s) |\n"
+                "|---|---|---|---|---|---|---|---|---|\n")
         for r in rows:
             f.write(f"| {r['scene']} | {r['method']} | {100 * r['success']:.0f}% | "
-                    f"{100 * r['collision']:.0f}% | {r['time']:.1f} | {r['min_dist']:.2f} | "
+                    f"{100 * r['collision']:.0f}% | {100 * r['collision_robot_fault']:.0f}% | "
+                    f"{100 * r['collision_ped_fault']:.0f}% | {r['time']:.1f} | {r['min_dist']:.2f} | "
                     f"{r['frozen']:.1f} |\n")
-        for m in dict.fromkeys(r["method"] for r in rows):
+        methods = list(dict.fromkeys(r["method"] for r in rows))
+        for m in methods:
             sub = [r for r in rows if r["method"] == m]
             f.write(f"| **all** | **{m}** | **{100 * np.mean([r['success'] for r in sub]):.0f}%** | "
                     f"**{100 * np.mean([r['collision'] for r in sub]):.0f}%** | "
+                    f"**{100 * np.mean([r['collision_robot_fault'] for r in sub]):.0f}%** | "
+                    f"**{100 * np.mean([r['collision_ped_fault'] for r in sub]):.0f}%** | "
                     f"**{np.nanmean([r['time'] for r in sub]):.1f}** | "
                     f"**{np.mean([r['min_dist'] for r in sub]):.2f}** | "
                     f"**{np.mean([r['frozen'] for r in sub]):.1f}** |\n")
+        # Success per scene, one column per method.
+        scenes = list(dict.fromkeys(r["scene"] for r in rows))
+        f.write("\n**Success per scene**\n\n| scene | " + " | ".join(methods) + " |\n|---|"
+                + "---|" * len(methods) + "\n")
+        for sc in scenes:
+            cells = [next((f"{100 * r['success']:.0f}%" for r in rows if r["scene"] == sc and r["method"] == m), "")
+                     for m in methods]
+            f.write(f"| {sc} | " + " | ".join(cells) + " |\n")
     print("wrote", name + ".md")
 
 

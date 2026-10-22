@@ -106,6 +106,18 @@ def sense(robot_pose, pos, vel, cam, rng):
     return out
 
 
+def robot_at_fault(pose, v, ped_pos, min_speed=0.1, cone_deg=90.0):
+    """True when the robot drove into the person: it was moving and the person was ahead of it,
+    inside its forward cone. Otherwise the (non-reactive) person walked into a stopped or slow robot,
+    or caught it from the side or behind, which no robot policy can fully prevent here."""
+    if v <= min_speed:
+        return False
+    rel = np.asarray(ped_pos, float) - pose[:2]
+    bearing = np.arctan2(rel[1], rel[0]) - pose[2]
+    bearing = (bearing + np.pi) % (2 * np.pi) - np.pi
+    return abs(np.degrees(bearing)) <= cone_deg / 2
+
+
 def run_episode(scene, ep, method, predictor, cam=Camera(), seed=0, record=False):
     rng = np.random.default_rng(seed)
     planner = Planner()
@@ -121,6 +133,7 @@ def run_episode(scene, ep, method, predictor, cam=Camera(), seed=0, record=False
     t = 0.0
     min_dist = np.inf
     collided = False
+    robot_fault = False
     path_len = 0.0
     frozen = 0.0
     frames = []
@@ -132,6 +145,8 @@ def run_episode(scene, ep, method, predictor, cam=Camera(), seed=0, record=False
             d = np.linalg.norm(pos - pose[:2], axis=1) - PED_RADIUS - config.ROBOT_RADIUS
             min_dist = min(min_dist, float(d.min()))
             if d.min() < 0:
+                if not collided:                     # the first contact decides who was at fault
+                    robot_fault = robot_at_fault(pose, v, pos[int(np.argmin(d))])
                 collided = True
         if np.linalg.norm(ep.goal - pose[:2]) < 0.3:
             reached = True
@@ -154,6 +169,8 @@ def run_episode(scene, ep, method, predictor, cam=Camera(), seed=0, record=False
         t += sim_dt
         k += 1
     result = dict(success=reached and not collided, reached=reached, collision=collided,
+                  collision_robot_fault=collided and robot_fault,
+                  collision_ped_fault=collided and not robot_fault,
                   time=t if reached else np.nan, min_dist=min_dist, path_len=path_len,
                   frozen=frozen)
     return (result, frames) if record else result
