@@ -11,7 +11,13 @@ Deadline: **27 October**. One commit per day minimum, with a DEVLOG entry.
 | **Sun 26** | Demo video (live + simulator), slides, README polish, Pi 4 numbers if a Pi is available | video + slides |
 | **Mon 27** | Buffer, final read-through, submit | submitted |
 
-## Status (end of Wed 22)
+## Status: completed early, Wed 22 Oct
+
+Everything planned for 22–26 Oct was done on 22 Oct, including the real-camera work (camera
+check, calibration, depth vs tape measure, live demo recordings) and the report. The days left
+are for review: read the report through, make slides from the figures, rehearse the demo.
+
+## Status at midday, Wed 22
 
 Done:
 - Pipeline, predictor (leave-one-out + final), crowd benchmark, laptop set up, repo on GitHub

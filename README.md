@@ -52,11 +52,16 @@ whole possible path.
   simulated navigation by ≤ 2 points.
 - **Speed:** 23 fps for the whole pipeline on the laptop CPU (YOLO11n in PyTorch; the OpenVINO
   export was slower here).
+- **Real rig:** stereo calibration RMS 0.37 px, baseline 110.9 mm (ruler ~108 mm); depth within
+  7 cm up to 5 m after a 1.62 px disparity correction (raw: −6 cm at 1 m to −105 cm at 5 m);
+  people detected and tracked from 1.5 to 7 m at about 1 m/s, live at 10–11 fps.
 
 Report draft: [docs/REPORT.md](docs/REPORT.md). Figures: [docs/figures/](docs/figures/)
 (made by `10_make_figures.py`).
 
 ![Benchmark outcomes](docs/figures/nav_outcomes.png)
+
+![A real recording replayed with the four zone methods](docs/figures/live_methods.png)
 
 ### Main tables
 

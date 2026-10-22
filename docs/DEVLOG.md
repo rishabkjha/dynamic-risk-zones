@@ -52,6 +52,20 @@
   frames, objects sit further right in camera 4's image than in camera 2's, so camera 4 looks
   like the LEFT camera (config.py still says 2 = left until 01_check_cameras.py confirms).
 
-**Next (Day 2)**
-- Confirm left/right (01), calibrate, measure depth error with a tape measure, run the live
-  demo with real people, record clips; fill the report's Day 2 TODOs.
+**Evening: real cameras (planned for Day 2, done the same day)**
+- `01_check_cameras.py`: left = `/dev/video4`, right = `/dev/video2` (the opposite of the first guess).
+- Calibration with the 30 mm / 22 mm ChArUco board: stereo RMS 0.373 px (24 of 25 pairs),
+  baseline 110.9 mm (ruler ~108 mm), focal 525.6 px. A first run with the config's 25 mm guess
+  gave 92.4 mm; the ruler check caught it.
+- `11_depth_check.py` against a tape measure: raw stereo read −6 cm at 1 m to −105 cm at 5 m, a
+  constant ~1.6 px disparity offset (residual ~0.35° yaw). `DISPARITY_OFFSET_PX = 1.62` brings
+  all five points within 7 cm (fitted on those same points).
+- Live demo: 4 scenes recorded (6.5–23 s, one or two people), live at 10.4–10.8 fps. Replayed
+  with all four zone methods (`04 --video --log`): people detected with a stereo distance in
+  99–100% of detections from 1.5 to 7 m, walking speeds ~1 m/s; the zones behave as in the
+  simulator (static drives at a crossing person, reach slows/turns in 11–42% of frames, cv and
+  learned pass behind). Recordings now store real frame times for replay.
+- Figures `live_methods.png` and the live screenshots; `results/live_comparison.mp4`.
+- Report: every Day 2 TODO filled with these measurements.
+
+**Project completed early on 22 Oct.** Remaining days: read-through, slides, demo rehearsal.
