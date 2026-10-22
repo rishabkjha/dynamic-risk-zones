@@ -88,7 +88,7 @@ Every time you open a new terminal: `cd ~/dynamic_nav && source .venv/bin/activa
 | `09_speed_test.py` | milliseconds per stage on this computer → `results/speed_<name>.md` |
 
 Settings (camera numbers, board size, class speeds, robot limits, zone method) are all in
-`config.py`. Tests: `python tests/test_core.py`.
+`config.py`. Tests: `python -m unittest`.
 
 ## Hardware
 

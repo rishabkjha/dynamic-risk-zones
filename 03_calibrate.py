@@ -43,9 +43,10 @@ rms_l, K1, D1, _, _ = cv2.calibrateCamera(obj_pts, pts_l, size, None, None, flag
 rms_r, K2, D2, _, _ = cv2.calibrateCamera(obj_pts, pts_r, size, None, None, flags=cv2.CALIB_FIX_K3)
 
 # Stereo calibration. Both cameras' own settings are refined together with the pair, which
-# fixes focal lengths that one camera's photos alone could not pin down. A pair taken while the board (or the rig) was moving has the two
-# cameras seeing it at slightly different moments, which ruins the result. Those pairs show
-# up with a large error, so they are dropped and the calibration is repeated.
+# fixes focal lengths that one camera's photos alone could not pin down. A pair taken while
+# the board (or the rig) was moving has the two cameras seeing it at slightly different
+# moments, which ruins the result. Those pairs show up with a large error, so they are
+# dropped and the calibration is repeated.
 MAX_PAIR_ERROR_PX = 1.0
 while True:
     rms, K1, D1, K2, D2, R, T, _, _, _, _, errors = cv2.stereoCalibrateExtended(
@@ -74,7 +75,7 @@ print(f"Focal length     {P1[0, 0]:.1f} px  (640x480 webcams: usually 500-900)")
 if not (200 < P1[0, 0] < 3000) or not (20 < baseline_mm < 500):
     raise SystemExit(
         "\nCalibration FAILED: focal length or baseline is impossible, so the photos are too similar.\n"
-        "Delete the calib_images folder and run 02_capture_calibration.py again, putting the board\n"
+        f"Delete the {config.CALIB_DIR} folder and run 02_capture_calibration.py again, putting the board\n"
         "in a different place for every pair (near, far, every corner of the image, tilted).")
 
 if rms > 1.0:

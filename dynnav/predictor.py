@@ -7,8 +7,9 @@ stretched along the heading, that grows as the prediction gets less certain.
 - ConstantVelocity: keeps walking straight at the current speed. Its uncertainty per step is
   measured on the training data, so it is a fair, calibrated baseline.
 - GRUPredictor: a small recurrent network trained on real pedestrian trajectories (ETH/UCY,
-  06_train_predictor.py), optionally also looking at the people around each person. It runs here in plain numpy, so the robot needs no PyTorch and it
-  runs on anything, a Pi 4 included (about 0.1 ms per object).
+  06_train_predictor.py), optionally also looking at the people around each person. It runs
+  here in plain numpy, so the robot needs no PyTorch and it runs on anything, a Pi 4 included
+  (about 0.1 ms per object).
 """
 import numpy as np
 
