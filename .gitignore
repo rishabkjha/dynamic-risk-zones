@@ -11,3 +11,4 @@ results/*_smoke.*
 *.onnx
 screenshots/
 recordings/
+results/live/*.mp4

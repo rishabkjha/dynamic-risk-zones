@@ -2,8 +2,8 @@
 
     python 10_make_figures.py
 
-Needs results/ from 06, 07 (Day 1 runs and ablations) and 09; a figure whose input is missing
-is skipped with a message. The simulator snapshots are recomputed (about a minute).
+Needs results/ from 06, 07 (Day 1 runs and ablations), 09 and the live replays in results/live/;
+a figure whose input is missing is skipped with a message. The simulator snapshots are recomputed (about a minute).
 Each method keeps one colour in every figure.
 """
 import csv
@@ -367,6 +367,102 @@ def snapshots(scene_name="zara1", episode=None):
     save(fig, "snapshots.png")
 
 
+def live_methods(recording=None):
+    """One moment of a real recording, replayed with each zone method (needs results/live/ from
+    04_live_zones.py --video <recording> --method <m> --out results/live/<name>_<m>.mp4 --log ...csv)."""
+    import cv2
+    logs = sorted(glob.glob("results/live/*_learned.csv"))
+    if not logs:
+        return print("skip live_methods: no results/live/*_learned.csv")
+    best = None                                 # (speed, recording, frame): fastest person 1.5-5 m away
+    for path in logs:
+        name = os.path.basename(path)[:-len("_learned.csv")]
+        if recording and name != recording:
+            continue
+        for r in read_csv(path):
+            if r["label"] == "person" and 1.5 < float(r["x"]) < 5.0:
+                sp = float(np.hypot(float(r["vx"]), float(r["vy"])))
+                if best is None or sp > best[0]:
+                    best = (sp, name, int(r["frame"]) - 1)
+    if best is None:
+        return print("skip live_methods: no moving person in the logs")
+    _, name, frame = best
+    panels = {}
+    for m in MAIN:
+        cap = cv2.VideoCapture(f"results/live/{name}_{m}.mp4")
+        cap.set(cv2.CAP_PROP_POS_FRAMES, frame)
+        ok, img = cap.read()
+        if not ok:
+            return print(f"skip live_methods: cannot read results/live/{name}_{m}.mp4")
+        panels[m] = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    h, w = panels["learned"].shape[:2]
+    cam = panels["learned"][:, :w - h]
+    fig, axes = plt.subplots(1, 5, figsize=(18, 3.9), gridspec_kw=dict(width_ratios=[w - h, h, h, h, h]))
+    axes[0].imshow(cam)
+    axes[0].set_title("left camera (detections, distance)", fontsize=11)
+    for ax, m in zip(axes[1:], MAIN):
+        ax.imshow(panels[m][:, w - h:])
+        ax.set_title(f"zones: {NAMES[m].replace(chr(10), ' ')}", fontsize=11, color=INK)
+        for side in ax.spines.values():
+            side.set_visible(True)
+            side.set_edgecolor(COLOURS[m])
+            side.set_linewidth(3)
+    for ax in axes:
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.grid(False)
+    fig.suptitle(f"Real recording ({name}), the same frame replayed with each zone method. Top views: "
+                 "rig at the bottom, 1 m grid, goal (star) 4 m ahead, green = chosen path.", fontsize=11)
+    fig.tight_layout()
+    save(fig, "live_methods.png")
+
+
+def live_video(out="results/live_comparison.mp4"):
+    """All recordings one after another: camera + the four methods' top views in one frame."""
+    import cv2
+    names = sorted({os.path.basename(p)[:-len("_learned.mp4")] for p in glob.glob("results/live/*_learned.mp4")})
+    if not names:
+        return print("skip live_video: no results/live/*.mp4")
+    writer = None
+    for name in names:
+        caps = {m: cv2.VideoCapture(f"results/live/{name}_{m}.mp4") for m in MAIN}
+        while True:
+            frames = {m: c.read()[1] for m, c in caps.items()}
+            if any(f is None for f in frames.values()):
+                break
+            h, w = frames["learned"].shape[:2]
+            cam = frames["learned"][:, :w - h]
+            tops = {m: f[:, w - h:].copy() for m, f in frames.items()}
+            for m, img in tops.items():
+                hexc = COLOURS[m].lstrip("#")
+                bgr = tuple(int(hexc[i:i + 2], 16) for i in (4, 2, 0))
+                cv2.rectangle(img, (0, 0), (h - 1, h - 1), bgr, 6)
+            info = np.full_like(cam, 255)
+            cv2.putText(info, f"recording {name}", (20, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (40, 40, 40), 2)
+            cv2.putText(info, "top views: static | reach (top row)", (20, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (40, 40, 40), 1)
+            cv2.putText(info, "           cv | learned (bottom row)", (20, 160), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (40, 40, 40), 1)
+            cv2.putText(info, "red = no-go zone, green = chosen path", (20, 220), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (40, 40, 40), 1)
+            grid = np.vstack([np.hstack([cam, tops["static"], tops["reach"]]),
+                              np.hstack([info, tops["cv"], tops["learned"]])])
+            if writer is None:
+                writer = cv2.VideoWriter(out, cv2.VideoWriter_fourcc(*"mp4v"), 10, (grid.shape[1], grid.shape[0]))
+            writer.write(grid)
+    if writer is not None:
+        writer.release()
+        print("wrote", out)
+
+
+def live_screenshots():
+    """The screenshots taken with P in 04_live_zones.py, as small JPEGs for the report."""
+    import cv2
+    shots = sorted(glob.glob("screenshots/*.png"))
+    for path in shots:
+        img = cv2.imread(path)
+        dest = os.path.join(OUT, "live_" + os.path.basename(path).replace(".png", ".jpg"))
+        cv2.imwrite(dest, img, [cv2.IMWRITE_JPEG_QUALITY, 85])
+        print("wrote", dest)
+
+
 if __name__ == "__main__":
     os.makedirs(OUT, exist_ok=True)
     pipeline_diagram()
@@ -377,3 +473,6 @@ if __name__ == "__main__":
     inputs_ablation()
     latency()
     snapshots()
+    live_methods()
+    live_screenshots()
+    live_video()

@@ -50,6 +50,7 @@ def main():
     ap.add_argument("--calib", default=config.CALIB_FILE)
     ap.add_argument("--out", help="also save what is shown to this .mp4 (for the report / slides)")
     ap.add_argument("--no-window", action="store_true", help="don't open a window (with --out)")
+    ap.add_argument("--log", help="write one CSV row per confirmed track per frame (for the report)")
     args = ap.parse_args()
 
     S = config.PROCESS_SCALE
@@ -79,6 +80,7 @@ def main():
     os.makedirs("screenshots", exist_ok=True)
     rec = None
     out = None
+    log = None
     frame_no = 0
     t_video = 0.0
     t = 0.0
@@ -140,6 +142,16 @@ def main():
         tracks = tracker.step(t, measurements)
         z_set = zones.build(method, tracks, planner.times, predictors.get(method))
         cmd, paths, best, _ = planner.plan(robot, 0.0, config.LIVE_GOAL, z_set)
+        if args.log:
+            if log is None:
+                log = open(args.log, "w")
+                log.write("t,frame,process_ms,detections,with_depth,track,label,x,y,vx,vy,plan_v,plan_w\n")
+            ms = 1000 * (time.time() - t_grab)
+            n_depth = len(measurements)
+            for tr in tracks or [None]:
+                cells = ([tr.id, tr.label, *np.round(tr.pos, 3), *np.round(tr.vel, 3)] if tr else ["", "", "", "", "", ""])
+                log.write(",".join(str(c) for c in [f"{t:.3f}", frame_no, f"{ms:.1f}", len(dets), n_depth, *cells,
+                                                    f"{cmd[0]:.2f}", f"{cmd[1]:.2f}"]) + "\n")
 
         cam_view = left.copy()
         for d, lab in zip(dets, labels):
@@ -199,6 +211,8 @@ def main():
         rec[2].close()
     if out is not None:
         out.release()
+    if log is not None:
+        log.close()
     source.release()
     cv2.destroyAllWindows()
 
