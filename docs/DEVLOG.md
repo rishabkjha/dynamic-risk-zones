@@ -53,5 +53,5 @@
   like the LEFT camera (config.py still says 2 = left until 01_check_cameras.py confirms).
 
 **Next (Day 2)**
-- Calibrate on Ubuntu, run the live demo with real people, record clips.
-- Benchmark: split collisions into "robot drove into person" vs "person walked into robot".
+- Confirm left/right (01), calibrate, measure depth error with a tape measure, run the live
+  demo with real people, record clips; fill the report's Day 2 TODOs.
