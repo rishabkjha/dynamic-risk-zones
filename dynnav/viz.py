@@ -37,12 +37,12 @@ class TopDown:
             p = self.px([[lo[0], gy], [hi[0], gy]]).astype(int)
             cv2.line(img, tuple(p[0]), tuple(p[1]), (235, 235, 235), 1)
 
-        # zones: outer levels first, several future times, fainter further ahead
+        # zones: all three levels now, only the no-go zone at the later times (else they cover the view)
         if zones is not None and not zones.empty:
             overlay = img.copy()
             for t_show in sorted(times_to_show, reverse=True):
                 k = int(np.argmin(np.abs(zones.times - t_show)))
-                for level in (2, 1, 0):
+                for level in ((2, 1, 0) if t_show == min(times_to_show) else (0,)):
                     for n in range(len(zones.centers)):
                         c = self.px(zones.centers[n, k]).astype(int)
                         a, b = zones.axes[n, k, level] * self.scale
