@@ -30,7 +30,7 @@
 **Setup**
 - Laptop: Dell Vostro 3590, i5-10210U (8 threads), 23 GB RAM, Ubuntu 24.04. Project lives in
   `~/dynamic_nav` (the Windows drive under `/media/rishab/sda1` is mounted read-only).
-- Webcams: Lenovo FHD at `/dev/video2` (left) and `/dev/video4` (right); to be confirmed with
+- Webcams: Lenovo FHD at `/dev/video4` (left) and `/dev/video2` (right), confirmed with
   `01_check_cameras.py`.
 
 **Afternoon**

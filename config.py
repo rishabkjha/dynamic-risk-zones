@@ -4,8 +4,8 @@
 # Camera numbers. On Linux each USB webcam usually shows up as two /dev/video nodes and only
 # the even one gives images, so two webcams are often 0 and 2 (or 2 and 4 on a laptop with
 # a built-in camera). Run 01_check_cameras.py to find them.
-LEFT_CAM = 2
-RIGHT_CAM = 4
+LEFT_CAM = 4
+RIGHT_CAM = 2
 
 # 640x480 MJPG keeps two webcams within USB bandwidth.
 WIDTH = 640
