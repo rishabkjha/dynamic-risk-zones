@@ -17,10 +17,10 @@ PROCESS_SCALE = 0.5
 # ---------------------------------------------------------------- calibration board
 # "charuco" (checkerboard with markers in the white squares) or "chessboard".
 BOARD_TYPE = "charuco"
-SQUARE_SIZE_MM = 25.0           # one black square on your print, measured with a ruler
+SQUARE_SIZE_MM = 30.0           # one black square on your print, measured with a ruler
 CHARUCO_SQUARES = (5, 7)        # your board: 5 x 7 squares
 CHARUCO_DICT = "DICT_5X5_50"
-MARKER_SIZE_MM = 17.5           # one marker (the black pattern inside a white square)
+MARKER_SIZE_MM = 22.0           # one marker (the black pattern inside a white square)
 CHESSBOARD = (9, 6)             # plain chessboard: INNER corners
 
 CALIB_DIR = "calib/images"
