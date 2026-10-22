@@ -145,7 +145,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--data", default="data/raw")
     ap.add_argument("--epochs", type=int, default=20)
-    ap.add_argument("--skip-loo", action="store_true", help="only train the final model")
+    ap.add_argument("--skip-loo", action="store_true", help="only train the final model(s)")
+    ap.add_argument("--final", default="both", choices=["both", "social", "nosocial"],
+                    help="final model(s) to train on all scenes (nosocial is for the ablation)")
     args = ap.parse_args()
     os.makedirs("models", exist_ok=True)
     os.makedirs("results", exist_ok=True)
@@ -179,10 +181,15 @@ def main():
     rng = np.random.default_rng(1)
     idx = rng.permutation(len(full[0]))
     n_val = len(idx) // 10
-    net = train((full[0][idx[n_val:]], full[1][idx[n_val:]]), (full[0][idx[:n_val]], full[1][idx[:n_val]]),
-                args.epochs, log="final")
-    save(net, config.PREDICTOR_FILE, cv_sigma(full[0]))
-    print("saved", config.PREDICTOR_FILE)
+    tr_s = (full[0][idx[n_val:]], full[1][idx[n_val:]])
+    va_s = (full[0][idx[:n_val]], full[1][idx[:n_val]])
+    if args.final in ("both", "social"):
+        save(train(tr_s, va_s, args.epochs, log="final"), config.PREDICTOR_FILE, cv_sigma(full[0]))
+        print("saved", config.PREDICTOR_FILE)
+    if args.final in ("both", "nosocial"):
+        save(train(tr_s, va_s, args.epochs, social=False, log="final no-social"),
+             config.PREDICTOR_NOSOCIAL_FILE, cv_sigma(full[0]))
+        print("saved", config.PREDICTOR_NOSOCIAL_FILE)
 
 
 def write_tables(rows):

@@ -9,6 +9,7 @@ How the zones are placed and how fast they grow is what the four methods differ 
            of its class (a person can only be so far away after t seconds)
   cv       constant-velocity prediction; ellipses at 1, 2, 3 sigma of its measured error
   learned  the GRU predictor; ellipses at 1, 2, 3 sigma of its own predicted uncertainty
+  learned_nosocial  the same GRU without the neighbour input (ablation)
 
 All of them are inflated by the object's body radius plus the robot's radius, so the robot
 can be treated as a point.
@@ -18,7 +19,7 @@ import numpy as np
 import config
 from dynnav import data
 
-METHODS = ("static", "reach", "cv", "learned")
+METHODS = ("static", "reach", "cv", "learned", "learned_nosocial")
 
 
 def class_motion(label):
@@ -86,7 +87,7 @@ def build(method, tracks, times, predictor=None):
         else:
             moving.append(i)
 
-    if moving and method in ("cv", "learned"):
+    if moving and method in ("cv", "learned", "learned_nosocial"):
         past = np.stack([tracks[i].past(predictor.dt, config.PRED_OBS) for i in moving])
         pos = np.array([t.pos for t in tracks])
         vel = np.array([t.vel for t in tracks])

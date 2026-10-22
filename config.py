@@ -64,6 +64,7 @@ PRED_DT = 0.4                   # predictor time step (the ETH/UCY datasets are 
 PRED_OBS = 8                    # past steps it looks at (3.2 s)
 PRED_STEPS = 12                 # future steps it predicts (4.8 s)
 PREDICTOR_FILE = "models/predictor.npz"
+PREDICTOR_NOSOCIAL_FILE = "models/predictor_nosocial.npz"   # ablation: no neighbour input
 
 # ---------------------------------------------------------------- zones and planning
 # How moving objects become no-go areas:
@@ -71,6 +72,7 @@ PREDICTOR_FILE = "models/predictor.npz"
 #   reach   = rings growing with the object's class speed (where it COULD be)
 #   cv      = constant-velocity prediction with growing uncertainty
 #   learned = the GRU predictor (where it WILL LIKELY be, with its uncertainty)
+#   learned_nosocial = the same GRU without the neighbour input (ablation)
 ZONE_METHOD = "learned"
 ZONE_COSTS = (1.0, 0.5, 0.15)   # inner (no-go), middle, outer zone
 ZONE_SIGMAS = (1.0, 2.0, 3.0)   # cv / learned: zone edges at 1, 2, 3 standard deviations

@@ -157,7 +157,7 @@ def run_episode(scene, ep, method, predictor, cam=Camera(), seed=0, record=False
             cmd, xy, best, _ = planner.plan(pose, v, ep.goal, z)
             if record:
                 frames.append(dict(t=t, pose=pose.copy(), peds=pos.copy(), tracks=[
-                    (tr.id, tr.pos.copy()) for tr in tracks], zones=z, paths=xy, best=best))
+                    (tr.id, tr.pos.copy(), tr.vel.copy()) for tr in tracks], zones=z, paths=xy, best=best))
         dv = config.ROBOT_MAX_ACC * sim_dt
         v = v + np.clip(cmd[0] - v, -dv, dv)
         pose[2] += cmd[1] * sim_dt

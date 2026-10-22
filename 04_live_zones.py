@@ -36,8 +36,11 @@ def load_predictors():
     if not os.path.exists(config.PREDICTOR_FILE):
         print(f"{config.PREDICTOR_FILE} not found: only the static and reach methods will work.")
         return {}
-    return {"learned": GRUPredictor.load(config.PREDICTOR_FILE),
-            "cv": ConstantVelocity.load(config.PREDICTOR_FILE)}
+    predictors = {"learned": GRUPredictor.load(config.PREDICTOR_FILE),
+                  "cv": ConstantVelocity.load(config.PREDICTOR_FILE)}
+    if os.path.exists(config.PREDICTOR_NOSOCIAL_FILE):
+        predictors["learned_nosocial"] = GRUPredictor.load(config.PREDICTOR_NOSOCIAL_FILE)
+    return predictors
 
 
 def main():

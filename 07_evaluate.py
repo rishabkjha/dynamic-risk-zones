@@ -5,6 +5,9 @@
     python 07_evaluate.py --video                 # also saves one video per method to results/
     python 07_evaluate.py --fov 360               # a 360-degree sensor instead of the webcams
     python 07_evaluate.py --no-flow               # tracker without the optical-flow speed
+    python 07_evaluate.py --v-max 1.2             # a faster robot (default ROBOT_MAX_V in config.py)
+    python 07_evaluate.py --sigma-scale 0.5       # cv / learned zones at 0.5x their usual sigmas
+    python 07_evaluate.py --methods learned learned_nosocial   # social input ablation
 
 Every method sees exactly the same crossings, sensor noise and missed detections (same seeds).
 In each scene the learned predictor is the one trained WITHOUT that scene (leave-one-out), so
@@ -24,6 +27,9 @@ from dynnav.viz import TopDown
 
 
 def predictor_for(method, scene):
+    if method == "learned_nosocial":
+        path = f"models/predictor_nosocial_{scene}.npz"
+        return GRUPredictor.load(path if os.path.exists(path) else config.PREDICTOR_NOSOCIAL_FILE)
     path = f"models/predictor_{scene}.npz"
     if not os.path.exists(path):
         path = config.PREDICTOR_FILE
@@ -39,7 +45,7 @@ def save_video(path, scene, ep, method, predictor, cam):
     view = TopDown(size=480, metres=10.0, follow=True)
     out = cv2.VideoWriter(path, cv2.VideoWriter_fourcc(*"mp4v"), 5, (480, 480))
     for f in frames:
-        tracks = [type("T", (), dict(pos=p, vel=np.zeros(2), id=i, label="person"))() for i, p in f["tracks"]]
+        tracks = [type("T", (), dict(pos=p, vel=v, id=i, label="person"))() for i, p, v in f["tracks"]]
         img = view.draw(f["pose"], ep.goal, tracks, f["zones"], f["paths"], f["best"], f["peds"],
                         title=f"{method}  t={f['t']:.1f}s")
         out.write(img)
@@ -51,13 +57,21 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--data", default="data/raw")
     ap.add_argument("--scenes", nargs="+", default=data.SCENES)
-    ap.add_argument("--methods", nargs="+", default=list(zones.METHODS))
+    ap.add_argument("--methods", nargs="+", default=["static", "reach", "cv", "learned"],
+                    choices=zones.METHODS)
     ap.add_argument("--episodes", type=int, default=40)
     ap.add_argument("--fov", type=float, default=70.0)
     ap.add_argument("--no-flow", action="store_true")
     ap.add_argument("--video", action="store_true")
+    ap.add_argument("--v-max", type=float, default=config.ROBOT_MAX_V, help="robot top speed, m/s")
+    ap.add_argument("--sigma-scale", type=float, default=1.0, help="multiplies ZONE_SIGMAS")
     ap.add_argument("--tag", default="")
     args = ap.parse_args()
+    config.ROBOT_MAX_V = args.v_max
+    config.ZONE_SIGMAS = tuple(args.sigma_scale * k for k in config.ZONE_SIGMAS)
+    note = (f"{args.episodes} crossings per scene, field of view {args.fov:.0f}°, optical flow "
+            f"{'off' if args.no_flow else 'on'}, robot max speed {config.ROBOT_MAX_V:.1f} m/s, zone sigmas "
+            + ", ".join(f"{k:g}" for k in config.ZONE_SIGMAS) + ".")
     cam = sim.Camera(fov_deg=args.fov, use_flow=not args.no_flow)
     os.makedirs("results", exist_ok=True)
 
@@ -78,7 +92,7 @@ def main():
                   flush=True)
             if args.video:
                 save_video(f"results/{scene_name}_{method}.mp4", scene, episodes[0], method, pred, cam)
-    write(rows, args.tag)
+    write(rows, args.tag, note)
 
 
 def summarise(res):
