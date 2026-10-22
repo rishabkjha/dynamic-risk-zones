@@ -1,0 +1,16 @@
+scene,method,ADE,FDE,NLL,inside_2sigma
+eth,constant velocity,1.0755,2.2819,5.0021,0.5907
+eth,GRU,1.0046,2.0465,5.9756,0.6319
+eth,social GRU (ours),0.9886,2.0297,5.1630,0.6264
+hotel,constant velocity,0.3194,0.6142,0.4640,0.9582
+hotel,GRU,0.3547,0.7079,-0.3291,0.9791
+hotel,social GRU (ours),0.3309,0.6470,-0.1039,0.9799
+univ,constant velocity,0.5242,1.1651,0.7445,0.8292
+univ,GRU,0.5112,1.1219,0.6502,0.7987
+univ,social GRU (ours),0.5105,1.1107,0.6246,0.8058
+zara1,constant velocity,0.4272,0.9524,0.3813,0.9177
+zara1,GRU,0.4710,1.0602,0.4274,0.9206
+zara1,social GRU (ours),0.4142,0.9231,0.2400,0.9300
+zara2,constant velocity,0.3239,0.7244,0.3424,0.9059
+zara2,GRU,0.3955,0.8829,-0.1682,0.9235
+zara2,social GRU (ours),0.3746,0.8380,-0.3099,0.9074

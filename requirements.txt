@@ -1,0 +1,7 @@
+numpy
+opencv-contrib-python
+ultralytics
+matplotlib
+# Intel laptop / NUC: fastest YOLO through OpenVINO (08_export_model.py --format openvino)
+openvino
+# Training the predictor (06) needs PyTorch; ultralytics already installs it.

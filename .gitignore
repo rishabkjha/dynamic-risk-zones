@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+data/raw/
+calib/images/
+results/*.mp4
+results/*_smoke.*
+*.pt
+*_openvino_model/
+*_ncnn_model/
+*.onnx
+screenshots/
+recordings/
