@@ -1,7 +1,7 @@
 # Navigating among moving people with stereo webcams, optical flow and learned motion prediction
 
-*Semester project report, draft of 22 October 2026. Sections marked **TODO (Day 2)** need the
-real-camera measurements.*
+*Semester project report, 22 October 2026. All numbers are measured; the files they come from
+are named in each section.*
 
 ## Abstract
 
@@ -21,7 +21,10 @@ robot crosses the real recorded crowds 200 times per method, prediction-based zo
 goal without contact far more often than static or reach zones (75% learned, 74% cv, 52% reach,
 42% static with a 360° sensor). With the webcams' 70° field of view all methods lose 6–22
 points of success, which identifies the narrow view, not the predictor, as the main limit of
-this hardware. The whole pipeline runs at 23 fps on a laptop CPU.
+this hardware. On the real webcam rig (stereo RMS 0.37 px, depth within 7 cm up to 5 m after a
+one-parameter disparity correction) the pipeline detects, tracks and predicts walking people at
+10–11 fps, and the four zone methods behave on real recordings as they do in simulation. The
+processing alone runs at 23 fps on the laptop CPU.
 
 ## 1 Introduction
 
@@ -80,7 +83,8 @@ detection; its nano model runs on CPUs and embedded boards.
 640×480 MJPG (the most two webcams can share on one USB controller). Processing runs at half
 resolution (320×240). The development computer is a Dell Vostro 3590 laptop (Intel i5-10210U,
 4 cores / 8 threads, 23 GB RAM, integrated graphics only, Ubuntu 24.04). Both webcams deliver
-frame pairs together at about 12 fps in indoor light (measured on Day 1; exposure-limited).
+frame pairs together at about 12 fps in indoor light (exposure-limited); with the whole pipeline
+and recording running, the live loop ran at 10.4–10.8 fps.
 
 **Calibration.** A ChArUco board (5×7 squares of 25 mm, 5×5 ArUco markers) is photographed
 20–30 times in different positions; a pair is only saved when the board has been still for 10
@@ -89,14 +93,37 @@ frames, because the two webcams are not hardware-synchronised. Each camera is ca
 (`stereoCalibrateExtended`), dropping pairs whose reprojection error exceeds 1 px and
 recalibrating. A sanity check rejects calibrations with impossible focal length or baseline.
 
-**TODO (Day 2):** calibration RMS (left, right, stereo), measured vs ruler baseline, focal length.
+*Result (22 Oct).* 25 pairs were captured; one was dropped for moving (1.6 px error). Single-camera
+RMS 0.526 px (left) and 0.432 px (right), stereo RMS **0.373 px** over 24 pairs, rectified focal
+length 525.6 px at 640×480, baseline **110.9 mm** against about 108 mm measured with a ruler between
+the lens centres. The board size matters: with a wrongly assumed 25 mm square the same photos gave
+a 92.4 mm baseline (exactly 25/30 of the true value), which the ruler check caught.
 
 **Depth.** Rectified grey images go through SGBM (64 disparities, 7×7 blocks, 3-way mode). No
 hole-filling filter is applied: filled-in depth invents obstacles. A detection's distance is the
 median depth inside the central half of its box, which leaves out the background around a
 person; without a calibration the distance falls back to the box height and a 1.7 m person.
 
-**TODO (Day 2):** depth error against a tape measure at 1, 2, 3, 4, 5 m.
+*Depth against a tape measure* (`11_depth_check.py`, `results/depth_check.md`). A printed board
+and box were placed 1–5 m from the lenses; the reading is the median depth in a 13×13 px square:
+
+| true distance | raw stereo | raw error | with disparity offset | error |
+|---|---|---|---|---|
+| 1.0 m | 0.940 m | −6.0 cm (−6.0%) | 0.992 m | −0.8 cm |
+| 2.0 m | 1.807 m | −19.3 cm (−9.7%) | 2.009 m | +0.9 cm |
+| 3.0 m | 2.619 m | −38.1 cm (−12.7%) | 3.065 m | +6.5 cm |
+| 4.0 m | 3.237 m | −76.3 cm (−19.1%) | 3.948 m | −5.2 cm |
+| 5.0 m | 3.951 m | −104.9 cm (−21.0%) | 5.063 m | +6.3 cm |
+
+Raw depth always read short, increasingly with distance. Converted to disparity, every reading
+was too large by nearly the same amount (1.41–1.86 px at 320×240): a constant disparity offset,
+which a small rotation left between the rectified cameras produces (1.62 px is about 0.35° of yaw;
+board views at 0.4–2 m cannot pin this angle down). The code was checked first: the rectified
+principal points are identical and the baseline agrees with the ruler. Subtracting the mean
+offset, 1.62 px (`config.DISPARITY_OFFSET_PX`), from every disparity brings all five readings
+within 7 cm. Note that this offset was **fitted on the same five points**, so the corrected column
+shows that one constant explains the error, not an independent test; `11_depth_check.py` prints
+the best offset for every new set of readings.
 
 **Optical flow.** DIS flow (fast preset) between consecutive left images gives each object's
 sideways image motion. The median flow outside all boxes, caused by the camera itself turning,
@@ -369,8 +396,55 @@ crossing.
 Detection dominates; prediction and planning together take about 3 ms. The webcams themselves
 deliver about 12 pairs per second indoors, so the computer is not the bottleneck.
 
-**TODO (Day 2):** live frame rate of `04_live_zones.py` with both webcams, and observations
-from people walking past the rig (screenshots in `docs/figures/`).
+On battery the same test gave 48.6 ms (20.6 fps) with PyTorch
+(`results/speed_rishab-Vostro-3590_pytorch_battery.md`).
+
+### 7.5 Live demo with the webcams
+
+Four scenes were recorded with `04_live_zones.py` (R key) in a lab corridor, with one or two
+people walking in front of the rig, and each recording was replayed offline with all four zone
+methods (`--video … --method … --log`), so every method sees exactly the same frames
+(`results/live/*.csv`; video: `results/live_comparison.mp4`, not in git).
+
+| recording | length | detections per frame | detections with a stereo distance | confirmed tracks | person distance seen | fastest person |
+|---|---|---|---|---|---|---|
+| 171448 | 7.8 s, 85 frames | 0.84 | 100% | 2 | 2.9–4.0 m | 1.05 m/s |
+| 171515 | 23.4 s, 249 frames | 1.10 | 100% | 4 | 1.5–7.1 m | 1.02 m/s |
+| 171601 | 6.5 s, 69 frames | 2.12 | 99% | 4 | 2.9–3.7 m | 1.08 m/s |
+| 171633 | 10.4 s, 109 frames | 1.73 | 100% | 2 | 1.9–3.7 m | 0.88 m/s |
+
+(Distances and speeds are those of confirmed tracks; "tracks" includes a chair and a false
+"skateboard" detection on robot parts in the background, which the zones treat as static
+obstacles.) The live loop ran at 10.4–10.8 fps while recording; offline, the whole per-frame
+processing (rectification, SGBM, flow, YOLO with Ultralytics pre/post-processing, tracking,
+zones, planning) took a median of 60–89 ms on battery with other programs open.
+
+How the planned command differs between methods on the same frames (share of frames where the
+planner slows below top speed / mean turn rate):
+
+| recording | static | reach | cv | learned |
+|---|---|---|---|---|
+| 171448 | 0% / 0.00 rad/s | 21% / 0.45 | 0% / 0.05 | 1% / 0.08 |
+| 171515 | 10% / 0.14 | 36% / 0.58 | 4% / 0.31 | 4% / 0.38 |
+| 171601 | 0% / 0.00 | 42% / 0.88 | 4% / 0.05 | 10% / 0.05 |
+| 171633 | 15% / 0.49 | 11% / 1.36 | 0% / 0.75 | 7% / 0.52 |
+
+![Same real frame, four zone methods](figures/live_methods.png)
+
+Observations:
+
+- **Detection and depth work at room scale.** People were detected and given a stereo
+  distance in practically every frame from 1.5 m to 7 m, and walking speeds of about 1 m/s were
+  measured. A person standing still read 0.1 m/s.
+- **The zones behave as in the simulator.** Static zones ignore motion, so the plan drives
+  straight at a person crossing the path (figure above). Reach zones grow over the whole area in
+  front of the rig and make the planner slow down or turn hard in 11–42% of frames. cv and
+  learned zones stretch along the walking direction: for a person crossing, the plan passes
+  behind them; for a person walking towards the rig, the no-go zone reaches back to the robot and
+  the plan turns away early (screenshots `docs/figures/live_*.jpg`).
+- **Limits seen live.** The leftmost 64 px of the image (20% of the width) has no stereo, because
+  only the left camera sees it; a person there is drawn with "?" and is not tracked. False
+  detections (a "skateboard" on robot parts) become small static obstacles.
 
 ## 8 Discussion and limitations
 
@@ -401,8 +475,16 @@ took 38.5 ms per frame against 26.5 ms in PyTorch, consistent over two runs. We 
 measured; PyTorch stays the default on this laptop. The integrated GPU (OpenVINO `GPU` device,
 FP16) is untested.
 
-**Sim-to-real.** The simulator's sensor model is an assumption calibrated on the stereo error
-model, not on measurements of this rig; Day 2 measures the real depth error and frame rate.
+**Sim-to-real.** The simulator's stereo noise model (2 cm + 1 cm·d²) was chosen before the
+rig was measured. After the disparity correction the measured errors (under 7 cm up to 5 m) are
+smaller than the model assumes at 4–5 m (18–27 cm), so the simulated sensor is, if anything,
+pessimistic. The live loop (10–11 fps with recording) is faster than the simulator's 5 Hz sensing
+and planning. The robot itself was not driven: the planner's commands were recorded, not
+executed.
+
+**Stereo calibration needs a distance check.** A calibration with 0.37 px RMS still left a
+1.6 px disparity offset (−21% at 5 m). Low reprojection error does not guarantee correct depth;
+the tape-measure check is what found it.
 
 ## 9 Conclusion and future work
 
@@ -412,7 +494,8 @@ social GRU running in numpy is enough to do so on a laptop CPU at video rate. Ne
 measure the real rig (calibration, depth error, live frame rate); export YOLO to NCNN and run the
 pipeline on a Raspberry Pi 4 with detection every second frame; replace the replayed crowds with
 reactive agents; and move the predictor and planner to an embedded controller (an ESP32-class
-board receiving tracks over serial) so the camera computer only does perception.
+board receiving tracks over serial) so the camera computer only does perception; and drive a
+real robot base with the planned commands.
 
 ## References
 
