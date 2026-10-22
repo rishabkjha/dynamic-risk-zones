@@ -1,4 +1,5 @@
 """Opens the two webcams and reads frame pairs as close in time as possible (Linux and Windows)."""
+import os
 import sys
 
 import cv2
@@ -49,7 +50,11 @@ class StereoCams:
 
 
 class VideoPair:
-    """Replays a stereo recording (left.mp4 + right.mp4) as if it were the cameras."""
+    """Replays a stereo recording (left.mp4 + right.mp4) as if it were the cameras.
+
+    If the folder has times.txt (written while recording), `time` is the real capture time of the
+    frame just read, in seconds from the start; otherwise it is None and the file's fps is used.
+    """
 
     def __init__(self, left_path, right_path):
         self.left = cv2.VideoCapture(left_path)
@@ -57,12 +62,19 @@ class VideoPair:
         if not (self.left.isOpened() and self.right.isOpened()):
             raise RuntimeError(f"Could not open {left_path} / {right_path}")
         self.fps = self.left.get(cv2.CAP_PROP_FPS) or 15.0
+        times = os.path.join(os.path.dirname(left_path), "times.txt")
+        self.times = [float(x) for x in open(times).read().split()] if os.path.exists(times) else None
+        self.frame = 0
+        self.time = None
 
     def read(self):
         ok_l, fl = self.left.read()
         ok_r, fr = self.right.read()
         if not (ok_l and ok_r):
             return None, None
+        if self.times and self.frame < len(self.times):
+            self.time = self.times[self.frame] - self.times[0]
+        self.frame += 1
         return fl, fr
 
     def release(self):

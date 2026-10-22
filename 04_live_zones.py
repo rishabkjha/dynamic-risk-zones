@@ -81,11 +81,13 @@ def main():
     out = None
     frame_no = 0
     t_video = 0.0
+    t = 0.0
     t_prev = time.time()
     fps = 0.0
     dets = []
     while True:
         fl, fr = source.read()
+        t_grab = time.time()
         if fl is None:
             if args.video:
                 break
@@ -93,6 +95,7 @@ def main():
         if rec is not None:
             rec[0].write(fl)
             rec[1].write(fr)
+            rec[2].write(f"{t_grab:.4f}\n")
         if rect is not None:
             left, right = rect.rectify(fl, fr)
         else:
@@ -103,11 +106,12 @@ def main():
         fl_now = flow.update(gray)
 
         if args.video:
-            t_video += 1.0 / source.fps
+            t_video = source.time if source.time is not None else t_video + 1.0 / source.fps
+            dt_frame = max(t_video - t, 1e-3) if frame_no else 1.0 / source.fps
             t = t_video
         else:
-            t = time.time()
-        dt_frame = 1.0 / source.fps if args.video else max(t - t_prev, 1e-3)
+            dt_frame = max(t_grab - t, 1e-3) if frame_no else 1.0 / 15
+            t = t_grab
         if frame_no % config.DETECT_EVERY == 0:
             dets = [d for d in detector(left) if d.label not in config.IGNORE_CLASSES]
         frame_no += 1
@@ -177,18 +181,22 @@ def main():
                 os.makedirs(folder, exist_ok=True)
                 four = cv2.VideoWriter_fourcc(*"mp4v")
                 size = (fl.shape[1], fl.shape[0])
+                # The real frame times go to times.txt, so a replay sees the true speeds.
                 rec = (cv2.VideoWriter(os.path.join(folder, "left.mp4"), four, 15, size),
-                       cv2.VideoWriter(os.path.join(folder, "right.mp4"), four, 15, size))
+                       cv2.VideoWriter(os.path.join(folder, "right.mp4"), four, 15, size),
+                       open(os.path.join(folder, "times.txt"), "w"))
                 print("recording to", folder)
             else:
                 rec[0].release()
                 rec[1].release()
+                rec[2].close()
                 rec = None
                 print("recording stopped")
 
     if rec is not None:
         rec[0].release()
         rec[1].release()
+        rec[2].close()
     if out is not None:
         out.release()
     source.release()
