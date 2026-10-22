@@ -38,7 +38,27 @@ only cost something; outside all zones is free. Zones are checked **at the time*
 be there, so the robot can pass behind a walking person instead of freezing in front of their
 whole possible path.
 
-## Results so far (22 Oct)
+## Results at a glance (22 Oct)
+
+- **Prediction:** the social GRU beats constant velocity on ETH/UCY (ADE 0.52 vs 0.53 m,
+  FDE 1.11 vs 1.15 m, NLL 1.12 vs 1.39), leave-one-scene-out.
+- **Navigation:** prediction-based zones reach the goal without contact in 75% (learned) and
+  74% (cv) of 200 crowd crossings, against 52% for class-speed reach zones and 42% for static
+  ones (360° sensor). With the webcams' 70° view: 56 / 52 / 42 / 36%.
+- **Who caused the contacts:** with learned zones, 9% of crossings end with the robot driving
+  into someone and 14% with a (non-reactive) person walking into it.
+- **Ablations:** 0.8 m/s is the best top speed of 0.5 / 0.8 / 1.2 m/s; zones at 1/2/3 σ keep
+  the success of smaller zones with 70% more clearance; optical flow and the social input change
+  simulated navigation by ≤ 2 points.
+- **Speed:** 23 fps for the whole pipeline on the laptop CPU (YOLO11n in PyTorch; the OpenVINO
+  export was slower here).
+
+Report draft: [docs/REPORT.md](docs/REPORT.md). Figures: [docs/figures/](docs/figures/)
+(made by `10_make_figures.py`).
+
+![Benchmark outcomes](docs/figures/nav_outcomes.png)
+
+### Main tables
 
 **Motion prediction**, ETH/UCY, leave-one-scene-out, 3.2 s observed → 4.8 s predicted
 (full table: [results/predictor_metrics.md](results/predictor_metrics.md)):
@@ -83,9 +103,10 @@ Every time you open a new terminal: `cd ~/dynamic_nav && source .venv/bin/activa
 | `04_live_zones.py` | **the live demo**: detection, depth, flow, tracks, zones and the planned path. `M` switches method, `R` records, `P` screenshot |
 | `05_get_data.py` | downloads the ETH/UCY pedestrian datasets (14 MB) |
 | `06_train_predictor.py` | trains the predictors (leave-one-out + final model), writes `results/predictor_metrics.md` |
-| `07_evaluate.py` | crowd simulator benchmark of the four zone methods, writes `results/nav_metrics*.md` |
+| `07_evaluate.py` | crowd simulator benchmark of the zone methods, writes `results/nav_metrics*.md`; ablation flags `--fov`, `--no-flow`, `--v-max`, `--sigma-scale`, `--methods learned_nosocial`, `--video` |
 | `08_export_model.py` | exports YOLO to OpenVINO (Intel) or NCNN (Pi 4) |
 | `09_speed_test.py` | milliseconds per stage on this computer → `results/speed_<name>.md` |
+| `10_make_figures.py` | the report figures from `results/` → `docs/figures/` |
 
 Settings (camera numbers, board size, class speeds, robot limits, zone method) are all in
 `config.py`. Tests: `python -m unittest`.
@@ -107,7 +128,8 @@ only training does.
 config.py          all settings
 dynnav/            the library: cams, board, stereo, flow, detector, tracker, data,
                    predictor, zones, planner, sim, viz
-models/            trained predictors (predictor.npz = deployed; *_<scene>.npz = leave-one-out)
+models/            trained predictors (predictor.npz = deployed; predictor_nosocial.npz = ablation;
+                   *_<scene>.npz = leave-one-out)
 results/           metric tables, speed tests, videos
-docs/              PLAN.md (schedule), DEVLOG.md (daily log), report material
+docs/              REPORT.md (report draft), figures/, PLAN.md (schedule), DEVLOG.md (daily log)
 ```
