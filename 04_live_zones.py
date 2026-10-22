@@ -56,7 +56,7 @@ def main():
     W, H = int(config.WIDTH * S), int(config.HEIGHT * S)
     if os.path.exists(args.calib):
         rect = Rectifier(args.calib, S)
-        stereo = StereoDepth(rect.fx, rect.baseline_m)
+        stereo = StereoDepth(rect.fx, rect.baseline_m, disparity_offset=config.DISPARITY_OFFSET_PX)
         fx, cx = rect.fx, rect.cx
         print(f"calibration loaded: baseline {rect.baseline_m * 1000:.0f} mm, focal {fx:.0f} px")
     else:

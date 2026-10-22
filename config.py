@@ -25,6 +25,11 @@ CHESSBOARD = (9, 6)             # plain chessboard: INNER corners
 
 CALIB_DIR = "calib/images"
 CALIB_FILE = "calib/stereo_calib.npz"
+# Subtracted from every SGBM disparity (pixels at PROCESS_SCALE). A tiny angle left between the
+# rectified cameras shifts all disparities by a constant, so depth reads short, more so far away.
+# Fitted by 11_depth_check.py against a tape measure at 1-5 m (22 Oct: 1.62 px; error before
+# -6 cm at 1 m to -105 cm at 5 m). Redo after re-calibrating.
+DISPARITY_OFFSET_PX = 1.62
 
 # Without a calibration the live demo still runs: distance then comes from the height of the
 # detection box (a person is about 1.7 m tall) and this guessed focal length, at 640x480.

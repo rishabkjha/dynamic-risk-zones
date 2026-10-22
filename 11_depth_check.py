@@ -7,7 +7,9 @@ Put something flat and textured (a box with print on it, a poster, the calibrati
 left camera (rectified) and the depth image; the green cross is where the distance is measured
 (median depth in a small square). Click to move the cross onto the object.
 Keys 1-5: save the current reading as "true distance 1..5 m" to results/depth_check.csv.
-Q: quit, and print the table (measured vs true, error) and write results/depth_check.md.
+Q: quit, and print the table (measured vs true, error) and write results/depth_check_latest.md.
+It also prints the DISPARITY_OFFSET_PX that would make the readings match the tape; put that
+in config.py (readings are saved with the offset in use at the time, which is stored with them).
 """
 import csv
 import os
@@ -26,7 +28,7 @@ OUT = "results/depth_check.csv"
 
 def main():
     rect = Rectifier(config.CALIB_FILE, config.PROCESS_SCALE)
-    stereo = StereoDepth(rect.fx, rect.baseline_m)
+    stereo = StereoDepth(rect.fx, rect.baseline_m, disparity_offset=config.DISPARITY_OFFSET_PX)
     cams = StereoCams()
     point = [rect.size[0] // 2 + 32, rect.size[1] // 2]       # a little right of centre: the left strip has no depth
 
@@ -81,18 +83,26 @@ def main():
     with open(OUT, "a", newline="") as f:
         w = csv.writer(f)
         if new:
-            w.writerow(["true_m", "measured_m"])
-        w.writerows(rows)
+            w.writerow(["true_m", "measured_m", "offset_px"])
+        w.writerows([(t, m, config.DISPARITY_OFFSET_PX) for t, m in rows])
     with open(OUT) as f:
-        allrows = [(float(a), float(b)) for a, b in list(csv.reader(f))[1:]]
+        table = list(csv.reader(f))[1:]
+    allrows = [(float(r[0]), float(r[1])) for r in table if float(r[2] if len(r) > 2 else 0) == config.DISPARITY_OFFSET_PX]
+    # Disparity each reading had before any offset, against the disparity the tape distance needs.
+    fb = rect.fx * rect.baseline_m
+    raw = [(float(r[0]), fb / float(r[1]) + float(r[2] if len(r) > 2 else 0)) for r in table]
+    best = float(np.mean([d - fb / t for t, d in raw]))
+    print(f"\nDISPARITY_OFFSET_PX that fits all {len(raw)} readings: {best:.2f} (config.py has "
+          f"{config.DISPARITY_OFFSET_PX:.2f})")
     lines = ["| true distance (m) | stereo (m) | error (cm) | error (%) |", "|---|---|---|---|"]
     for t, m in sorted(allrows):
         lines.append(f"| {t:.1f} | {m:.3f} | {100 * (m - t):+.1f} | {100 * (m - t) / t:+.1f}% |")
     text = "\n".join(lines)
     print(text)
-    with open("results/depth_check.md", "w") as f:
+    with open("results/depth_check_latest.md", "w") as f:
         f.write(f"Stereo distance vs tape measure (baseline {rect.baseline_m * 1000:.1f} mm, "
-                f"focal {rect.fx:.1f} px at {rect.size[0]}x{rect.size[1]})\n\n" + text + "\n")
+                f"focal {rect.fx:.1f} px at {rect.size[0]}x{rect.size[1]}, disparity offset "
+                f"{config.DISPARITY_OFFSET_PX:.2f} px)\n\n" + text + "\n")
 
 
 if __name__ == "__main__":

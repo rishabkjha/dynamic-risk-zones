@@ -36,9 +36,10 @@ class StereoDepth:
     Raw SGBM only: hole-filling filters (WLS) invent depths, which turn into phantom obstacles.
     """
 
-    def __init__(self, fx, baseline_m, num_disp=64, block=7):
+    def __init__(self, fx, baseline_m, num_disp=64, block=7, disparity_offset=0.0):
         self.fx = fx
         self.baseline_m = baseline_m
+        self.disparity_offset = disparity_offset
         self.num_disp = num_disp
         self.sgbm = cv2.StereoSGBM_create(
             minDisparity=0, numDisparities=num_disp, blockSize=block,
@@ -49,6 +50,7 @@ class StereoDepth:
     def compute(self, gray_l, gray_r):
         disp = self.sgbm.compute(gray_l, gray_r).astype(np.float32) / 16.0
         disp[:, :self.num_disp] = 0.0  # the left strip is only seen by one camera
+        disp[disp > 0] -= self.disparity_offset
         depth = np.zeros_like(disp)
         valid = disp > 0.5
         depth[valid] = self.fx * self.baseline_m / disp[valid]
