@@ -107,6 +107,7 @@ Every time you open a new terminal: `cd ~/dynamic_nav && source .venv/bin/activa
 | `08_export_model.py` | exports YOLO to OpenVINO (Intel) or NCNN (Pi 4) |
 | `09_speed_test.py` | milliseconds per stage on this computer → `results/speed_<name>.md` |
 | `10_make_figures.py` | the report figures from `results/` → `docs/figures/` |
+| `11_depth_check.py` | stereo distance vs a tape measure: click a point, press 1–5 at 1–5 m → `results/depth_check.md` |
 
 Settings (camera numbers, board size, class speeds, robot limits, zone method) are all in
 `config.py`. Tests: `python -m unittest`.
